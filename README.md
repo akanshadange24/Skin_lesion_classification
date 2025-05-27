@@ -3,7 +3,7 @@ detection plays a critical role in improving patient outcomes. This thesis prese
 a comprehensive deep learning-based framework for the automated classification
 of dermoscopic skin lesion images using the HAM10000 dataset. The proposed
 methodology involves multiple stages, including image preprocessing, data segmentation, and the application of advanced convolutional neural network (CNN)
-architectures through transfer learning models. The performance of seven cutting edge pretrained models—ResNet50, MobileNetV2, VGG19, DenseNet121, InceptionV3, Xception, and EfficientNetB0—was assessed and refined separately. Weighted
+architectures through transfer learning models. The performance of seven cutting edge pretrained models—ResNet50, MobileNetV2, VGG19, DenseNet121, InceptionV3, Xception, and EfficientNetB0—was assessed and refined separately. Weighted
 loss functions and class-balancing techniques were used to address the dataset’s
 intrinsic class imbalance problem. Additionally, a performance-based weighted
 soft voting mechanism was used to integrate all base learners to create a unique
