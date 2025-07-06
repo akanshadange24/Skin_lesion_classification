@@ -1,0 +1,391 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyPnmRoc4CaFY9rKO3xchWoC",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/akanshadange24/Skin_lesion_classification/blob/main/Text%20Generator%20Using%20RNN\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3d511339"
+      },
+      "source": [
+        "labeled_text_data = [\n",
+        "    (\"Buy now and get 50% off!\", \"ad\"),\n",
+        "    (\"This is a regular news article about the weather.\", \"non-ad\"),\n",
+        "    (\"Limited time offer! Don't miss out!\", \"ad\"),\n",
+        "    (\"The company announced its quarterly earnings today.\", \"non-ad\"),\n",
+        "    (\"Click here to win a free prize!\", \"ad\"),\n",
+        "    (\"Here is the schedule for the upcoming events.\", \"non-ad\"),\n",
+        "    (\"Huge discounts on all products this week!\", \"ad\"),\n",
+        "    (\"Learn more about our services on our website.\", \"ad\"),\n",
+        "    (\"This is a forum post discussing a technical issue.\", \"non-ad\"),\n",
+        "    (\"Sign up for our newsletter for exclusive deals.\", \"ad\"),\n",
+        "    (\"The capital of France is Paris.\", \"non-ad\"),\n",
+        "    (\"Discover amazing deals on electronics!\", \"ad\"),\n",
+        "    (\"The meeting minutes from the last session are available.\", \"non-ad\"),\n",
+        "    (\"Get yours today before they are all gone!\", \"ad\"),\n",
+        "    (\"This is a recipe for chocolate chip cookies.\", \"non-ad\"),\n",
+        "    (\"We are hiring! Apply now!\", \"ad\"),\n",
+        "    (\"The history of the internet is fascinating.\", \"non-ad\"),\n",
+        "    (\"Special offer just for you!\", \"ad\"),\n",
+        "    (\"Customer reviews are important for feedback.\", \"non-ad\"),\n",
+        "    (\"Download our app for a better experience.\", \"ad\"),\n",
+        "    (\"The quick brown fox jumps over the lazy dog.\", \"non-ad\"),\n",
+        "    (\"Earn rewards with every purchase.\", \"ad\"),\n",
+        "    (\"Frequently asked questions about our product.\", \"non-ad\"),\n",
+        "    (\"Join our community and connect with others.\", \"ad\"),\n",
+        "    (\"The sun is a star.\", \"non-ad\"),\n",
+        "    (\"Unlock exclusive benefits with our premium plan.\", \"ad\"),\n",
+        "    (\"Terms and conditions apply.\", \"non-ad\"),\n",
+        "    (\"Find the perfect gift for your loved ones.\", \"ad\"),\n",
+        "    (\"The Earth revolves around the sun.\", \"non-ad\"),\n",
+        "    (\"Save big on your next order!\", \"ad\")\n",
+        "]"
+      ],
+      "execution_count": 11,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5a84d3f8",
+        "outputId": "966a1634-543a-4116-806e-42cd59860266"
+      },
+      "source": [
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "\n",
+        "class AdRNN(nn.Module):\n",
+        "    def __init__(self, input_size, hidden_size):\n",
+        "        super(AdRNN, self).__init__()\n",
+        "        self.hidden_size = hidden_size\n",
+        "        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)\n",
+        "        # New classification layer for binary output\n",
+        "        self.fc = nn.Linear(hidden_size, 1) # One output unit for binary classification\n",
+        "\n",
+        "    def forward(self, x, hidden):\n",
+        "        # Pass input through RNN layer\n",
+        "        out, hidden = self.rnn(x, hidden)\n",
+        "        # Pass the output of the last time step through the classification layer\n",
+        "        # We take the output from the last time step for classification\n",
+        "        out = self.fc(out[:, -1, :]) # Select output of the last time step\n",
+        "\n",
+        "        # Apply sigmoid activation for binary classification (output between 0 and 1)\n",
+        "        out = torch.sigmoid(out)\n",
+        "\n",
+        "        return out, hidden\n",
+        "\n",
+        "    def init_hidden(self, batch_size):\n",
+        "        return torch.zeros(1, batch_size, self.hidden_size)\n",
+        "\n",
+        "# Define vocab_size and hidden_size before instantiating the model\n",
+        "# vocab_size is the size of the vocabulary (number of unique characters)\n",
+        "# hidden_size is the number of features in the hidden state of the RNN\n",
+        "vocab_size = 0 # This will be updated later with the correct vocabulary size\n",
+        "hidden_size = 128 # You can adjust this value\n",
+        "\n",
+        "\n",
+        "# Instantiate the modified model\n",
+        "model = AdRNN(vocab_size, hidden_size)\n",
+        "\n",
+        "print(model)"
+      ],
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "AdRNN(\n",
+            "  (rnn): RNN(0, 128, batch_first=True)\n",
+            "  (fc): Linear(in_features=128, out_features=1, bias=True)\n",
+            ")\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6959539f",
+        "outputId": "198fb2c1-3c7b-4099-d3b7-434e2e8b31d7"
+      },
+      "source": [
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "\n",
+        "def one_hot_encode(sequence, vocab_size):\n",
+        "    # Create a tensor of zeros with shape (sequence_length, vocab_size)\n",
+        "    encoding = torch.zeros(len(sequence), vocab_size)\n",
+        "    # For each index in the sequence, set the corresponding element in the encoding to 1\n",
+        "    for i, char_index in enumerate(sequence):\n",
+        "        encoding[i, char_index] = 1\n",
+        "    return encoding\n",
+        "\n",
+        "# 1. Create numerical representations of the text data and their corresponding labels\n",
+        "all_text = \"\".join([text for text, label in labeled_text_data])\n",
+        "chars = sorted(list(set(all_text)))\n",
+        "char_to_idx = {char: idx for idx, char in enumerate(chars)}\n",
+        "idx_to_char = {idx: char for idx, char in enumerate(chars)}\n",
+        "\n",
+        "# Recalculate vocab_size based on the labeled data\n",
+        "vocab_size = len(chars)\n",
+        "\n",
+        "encoded_labeled_data = []\n",
+        "for text, label in labeled_text_data:\n",
+        "    encoded_text = [char_to_idx[char] for char in text]\n",
+        "    numerical_label = 1 if label == \"ad\" else 0\n",
+        "    encoded_labeled_data.append((encoded_text, numerical_label))\n",
+        "\n",
+        "# Instantiate the model again with the correct vocab size if it was created with the old one\n",
+        "# Assuming the model structure AdRNN is already defined and correct from previous steps\n",
+        "# If the model was already instantiated with the wrong vocab_size, re-instantiate it.\n",
+        "# If the model was not yet instantiated, this is where it should be done after defining vocab_size.\n",
+        "# For robustness, let's re-instantiate the model with the correct vocab_size.\n",
+        "model = AdRNN(vocab_size, hidden_size)\n",
+        "\n",
+        "\n",
+        "# 2. Define the loss function suitable for binary classification\n",
+        "criterion = nn.BCELoss()\n",
+        "\n",
+        "# 3. Define the optimizer for the model parameters\n",
+        "lr = 0.005 # Using the same learning rate as before\n",
+        "optimizer = torch.optim.Adam(model.parameters(), lr=lr)\n",
+        "\n",
+        "# 4. Implement the training loop\n",
+        "num_epochs_classification = 100 # Number of epochs for classification training\n",
+        "\n",
+        "print(\"Starting classification model training...\")\n",
+        "\n",
+        "for epoch in range(num_epochs_classification):\n",
+        "    total_loss = 0\n",
+        "    for encoded_text, numerical_label in encoded_labeled_data:\n",
+        "        # Convert input sequence to a one-hot encoded tensor\n",
+        "        input_tensor = one_hot_encode(encoded_text, vocab_size).unsqueeze(0)\n",
+        "\n",
+        "        # Convert numerical label to a tensor\n",
+        "        target_tensor = torch.tensor([numerical_label], dtype=torch.float32).unsqueeze(0)\n",
+        "\n",
+        "        # Initialize the hidden state of the RNN\n",
+        "        hidden = model.init_hidden(1)\n",
+        "\n",
+        "        # Pass the input tensor and hidden state through the model\n",
+        "        output, hidden = model(input_tensor, hidden)\n",
+        "\n",
+        "        # Calculate the loss\n",
+        "        loss = criterion(output.squeeze(), target_tensor.squeeze())\n",
+        "\n",
+        "        # Perform backpropagation and update weights\n",
+        "        optimizer.zero_grad()\n",
+        "        loss.backward()\n",
+        "        optimizer.step()\n",
+        "\n",
+        "        total_loss += loss.item()\n",
+        "\n",
+        "    # 5. Print the loss at regular intervals\n",
+        "    if (epoch + 1) % 10 == 0: # Print every 10 epochs\n",
+        "        print(f\"Epoch [{epoch+1}/{num_epochs_classification}], Loss: {total_loss/len(encoded_labeled_data):.4f}\")\n",
+        "\n",
+        "print(\"Classification model training finished.\")"
+      ],
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Starting classification model training...\n",
+            "Epoch [10/100], Loss: 0.8011\n",
+            "Epoch [20/100], Loss: 0.5754\n",
+            "Epoch [30/100], Loss: 0.6325\n",
+            "Epoch [40/100], Loss: 0.5004\n",
+            "Epoch [50/100], Loss: 0.5342\n",
+            "Epoch [60/100], Loss: 0.4727\n",
+            "Epoch [70/100], Loss: 0.4664\n",
+            "Epoch [80/100], Loss: 0.6247\n",
+            "Epoch [90/100], Loss: 0.6631\n",
+            "Epoch [100/100], Loss: 0.3880\n",
+            "Classification model training finished.\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "b7a0635a",
+        "outputId": "860dcb5a-ab13-4b58-8e8f-88e88b695751"
+      },
+      "source": [
+        "# 1. Check if the website_text variable exists and is not empty.\n",
+        "if 'website_text' in locals() and website_text:\n",
+        "    # 2. Set the model to evaluation mode and disable gradient calculations.\n",
+        "    model.eval()\n",
+        "    with torch.no_grad():\n",
+        "        # 3. Define a sequence length for inference.\n",
+        "        seq_length_inference = 30  # Consistent with training\n",
+        "\n",
+        "        print(\"Analyzing scraped website text for potential ad sequences:\")\n",
+        "\n",
+        "        # 4. Iterate through the website_text in steps of seq_length_inference.\n",
+        "        for i in range(0, len(website_text) - seq_length_inference + 1, seq_length_inference):\n",
+        "            input_seq = website_text[i : i + seq_length_inference]\n",
+        "\n",
+        "            # a. Convert the text sequence to a one-hot encoded tensor.\n",
+        "            # Handle characters not in the training vocabulary\n",
+        "            encoded_seq = [char_to_idx.get(char, 0) for char in input_seq] # Map unknown chars to index 0\n",
+        "            input_tensor = one_hot_encode(encoded_seq, vocab_size).unsqueeze(0)\n",
+        "\n",
+        "            # b. Initialize the hidden state of the model.\n",
+        "            hidden = model.init_hidden(1)\n",
+        "\n",
+        "            # c. Pass the input tensor and hidden state through the trained model.\n",
+        "            output, hidden = model(input_tensor, hidden)\n",
+        "\n",
+        "            # d. Convert the model's output probability to a predicted class (0 or 1).\n",
+        "            predicted_class = 1 if output.squeeze().item() > 0.5 else 0\n",
+        "\n",
+        "            # e. Print the predicted class for each processed sequence.\n",
+        "            print(f\"Sequence: '{input_seq}' -> Predicted class: {predicted_class}\")\n",
+        "\n",
+        "else:\n",
+        "    print(\"No scraped website text available to analyze.\")"
+      ],
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Analyzing scraped website text for potential ad sequences:\n",
+            "Sequence: 'Grocery Store Online: Grocery ' -> Predicted class: 0\n",
+            "Sequence: 'Delivery App | Swiggy Instamar' -> Predicted class: 0\n",
+            "Sequence: 't\n",
+            "Search for\n",
+            "\"Coffee\"\n",
+            "\"Kettle\"' -> Predicted class: 0\n",
+            "Sequence: '\n",
+            "\"Oranges\"\n",
+            "\"Mugs\"\n",
+            "\"Cookies\"\n",
+            "\"E' -> Predicted class: 0\n",
+            "Sequence: 'arrings\"\n",
+            "\"Cakes\"\n",
+            "\"Coffee\"\n",
+            "4 MI' -> Predicted class: 0\n",
+            "Sequence: 'NS\n",
+            "delivery\n",
+            "Instamart\n",
+            "Oops\n",
+            "Som' -> Predicted class: 0\n",
+            "Sequence: 'ething's not right. Our best m' -> Predicted class: 0\n",
+            "Sequence: 'inds are on it. You may retry ' -> Predicted class: 0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "e16ff0b7",
+        "outputId": "f056ca8d-e4b7-4013-91e2-4e92729ecfc8"
+      },
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score\n",
+        "\n",
+        "# 1. Split the encoded_labeled_data into training and testing sets\n",
+        "train_data, test_data = train_test_split(encoded_labeled_data, test_size=0.2, random_state=42)\n",
+        "\n",
+        "# Prepare lists to store actual and predicted labels\n",
+        "actual_labels = []\n",
+        "predicted_labels = []\n",
+        "\n",
+        "print(\"Evaluating the model on the test set...\")\n",
+        "\n",
+        "# 2. Iterate through the test set\n",
+        "model.eval() # Set the model to evaluation mode\n",
+        "with torch.no_grad(): # Disable gradient calculation during inference\n",
+        "    for encoded_text, numerical_label in test_data:\n",
+        "        actual_labels.append(numerical_label)\n",
+        "\n",
+        "        # Convert the encoded text sequence to a one-hot encoded tensor\n",
+        "        input_tensor = one_hot_encode(encoded_text, vocab_size).unsqueeze(0)\n",
+        "\n",
+        "        # Initialize the hidden state of the model\n",
+        "        hidden = model.init_hidden(1)\n",
+        "\n",
+        "        # Pass the input tensor and hidden state through the trained model\n",
+        "        output, hidden = model(input_tensor, hidden)\n",
+        "\n",
+        "        # Convert the model's output probability to a predicted class (0 or 1)\n",
+        "        predicted_class = 1 if output.squeeze().item() > 0.5 else 0\n",
+        "        predicted_labels.append(predicted_class)\n",
+        "\n",
+        "# 3. Calculate the classification metrics\n",
+        "accuracy = accuracy_score(actual_labels, predicted_labels)\n",
+        "precision = precision_score(actual_labels, predicted_labels)\n",
+        "recall = recall_score(actual_labels, predicted_labels)\n",
+        "f1 = f1_score(actual_labels, predicted_labels)\n",
+        "\n",
+        "# 4. Print the calculated evaluation metrics\n",
+        "print(\"\\nClassification Metrics on Test Set:\")\n",
+        "print(f\"Accuracy: {accuracy:.4f}\")\n",
+        "print(f\"Precision: {precision:.4f}\")\n",
+        "print(f\"Recall: {recall:.4f}\")\n",
+        "print(f\"F1-score: {f1:.4f}\")"
+      ],
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Evaluating the model on the test set...\n",
+            "\n",
+            "Classification Metrics on Test Set:\n",
+            "Accuracy: 0.8333\n",
+            "Precision: 1.0000\n",
+            "Recall: 0.8000\n",
+            "F1-score: 0.8889\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
